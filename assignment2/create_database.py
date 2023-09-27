@@ -1,3 +1,5 @@
+import numpy as np
+from collections import defaultdict
 from io import StringIO
 import os
 from DbConnector import DbConnector
@@ -6,6 +8,7 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
+# Change this if dataset is located somewhere else
 DATASET_PATH = os.path.join(os.path.dirname(__file__), "..", "dataset", "Data")
 
 
@@ -39,8 +42,11 @@ class CreateDatabase:
                 id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
                 activity_id INT NOT NULL,
                 lat DOUBLE NOT NULL,
+                prev_lat DOUBLE,
                 lon DOUBLE NOT NULL,
-                altitude INT NOT NULL,
+                prev_lon DOUBLE,
+                altitude INT,
+                altitude_diff INT,
                 date_days DOUBLE NOT NULL,
                 date_time DATETIME NOT NULL,
                 FOREIGN KEY (activity_id) REFERENCES Activity(id)
@@ -52,6 +58,23 @@ class CreateDatabase:
             print("Executing", query)
             self.cursor.execute(query)
             self.db_connection.commit()
+
+    def set_indices(self):
+        """
+        Sets relevant indices on the database.
+        """
+        queries = [
+            """
+            ALTER TABLE TrackPoint ADD INDEX idx_trackpoint_activity_date (activity_id, date_days)
+            """
+        ]
+        for query in queries:
+            print("Executing", query)
+            try:
+                self.cursor.execute(query)
+                self.db_connection.commit()
+            except Exception as e:
+                print("Failed to create index:", e)
 
     def insert_user_data(self):
         """
@@ -103,6 +126,11 @@ class CreateDatabase:
                 df = pd.read_csv(StringIO("".join(relevant_lines)), header=None)
                 # These columns correspond to the columns in the csv
                 df.columns = ["lat", "lon", "irrelevant", "altitude", "date_days", "date", "time"]
+                # Change lat, lon, altitude and date_days to correct types
+                for col in ["lat", "lon", "altitude", "date_days"]:
+                    df[col] = df[col].astype(float)
+                # Some altitude values are missing, so we set them to nan
+                df.loc[df["altitude"] == -777, "altitude"].fillna(inplace=True, value=float("nan"))
                 # Create Activity object
                 start_time = datetime.strptime(df["date"][0] + " " + df["time"][0], "%Y-%m-%d %H:%M:%S")
                 end_time = datetime.strptime(df["date"][len(df) - 1] + " " + df["time"][len(df) - 1], "%Y-%m-%d %H:%M:%S")
@@ -116,11 +144,21 @@ class CreateDatabase:
                 activity_id = self.cursor.lastrowid
                 # Create TrackPoint objects
                 trackpoints = []
+                prev_row = None
                 for _, row in df.iterrows():
-                    trackpoint = (activity_id, row["lat"], row["lon"], row["altitude"], row["date_days"], row["date"] + " " + row["time"])
+                    altitude_diff = None
+                    prev_lat = None
+                    prev_lon = None
+                    if prev_row is not None:
+                        if not np.isnan(prev_row["altitude"]):
+                            altitude_diff = row["altitude"] - prev_row["altitude"]
+                        prev_lat = prev_row["lat"]
+                        prev_lon = prev_row["lon"]
+                    trackpoint = (activity_id, row["lat"], prev_lat, row["lon"], prev_lon, row["altitude"], altitude_diff, row["date_days"], row["date"] + " " + row["time"])
                     trackpoints.append(trackpoint)
+                    prev_row = row
                 # Bulk insert TrackPoint objects into TrackPoint table
-                query = "INSERT INTO TrackPoint (activity_id, lat, lon, altitude, date_days, date_time) VALUES (%s, %s, %s, %s, %s, %s)"
+                query = "INSERT INTO TrackPoint (activity_id, lat, prev_lat, lon, prev_lon, altitude, altitude_diff, date_days, date_time) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
                 self.cursor.executemany(query, trackpoints)
                 self.db_connection.commit()
 
@@ -132,6 +170,8 @@ class CreateDatabase:
         user_ids = [row[0] for row in rows]
         print("Found %d users with labels" % len(user_ids))
         print(user_ids)
+
+        transportation_mode_instances = defaultdict(int)
 
         # Iterate over all users with labels
         for user_id in user_ids:
@@ -147,14 +187,22 @@ class CreateDatabase:
                     start_time, end_time, transportation_mode = line.split("\t")
                     start_time = datetime.strptime(start_time, "%Y/%m/%d %H:%M:%S").replace(tzinfo=timezone.utc)
                     end_time = datetime.strptime(end_time, "%Y/%m/%d %H:%M:%S").replace(tzinfo=timezone.utc)
+                    start_time = start_time.strftime("%Y-%m-%d %H:%M:%S")
+                    end_time = end_time.strftime("%Y-%m-%d %H:%M:%S")
+                    transportation_mode = transportation_mode.strip()
                     update_values.append((transportation_mode, user_id, start_time, end_time))
+                    transportation_mode_instances[transportation_mode] += 1
 
             # Bulk update Activity table
+            print(update_values)
             query = "UPDATE Activity SET transportation_mode = %s WHERE user_id = %s AND start_date_time = %s AND end_date_time = %s"
             self.cursor.executemany(query, update_values)
             self.db_connection.commit()
         
         print("Set transportation modes for all users")
+        print("Transportation mode instances:")
+        for key, value in transportation_mode_instances.items():
+            print(key, value)
 
 
     def fetch_data(self, table_name):
@@ -185,23 +233,17 @@ class CreateDatabase:
 
 
 def main():
-    program = None
-    try:
-        program = CreateDatabase()
-        # program.drop_all_tables()
-        # program.drop_table(table_name="User")
-        program.create_tables()
-        # program.insert_user_data()
-        _ = program.fetch_data(table_name="User")
-        # program.insert_activity_and_trackpoint_data()
-        program.set_transportation_modes()
-        # program.drop_table(table_name="User")
-        # program.show_tables()
-    except Exception as e:
-        print("ERROR: Failed to use database:", e)
-    finally:
-        if program:
-            program.connection.close_connection()
+    program = CreateDatabase()
+    program.drop_all_tables()
+    # program.drop_table(table_name="TrackingPoint")
+    # program.drop_table(table_name="Activity")
+    program.create_tables()
+    program.set_indices()
+    program.insert_user_data()
+    # _ = program.fetch_data(table_name="User")
+    program.insert_activity_and_trackpoint_data()
+    program.set_transportation_modes()
+    # program.show_tables()
 
 
 if __name__ == '__main__':
