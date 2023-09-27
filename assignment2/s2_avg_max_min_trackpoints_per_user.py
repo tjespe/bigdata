@@ -1,5 +1,5 @@
 from DbConnector import DbConnector
-from helpers import printtable
+from helpers import print_table
 
 #Find the average, maximum and minimum number of trackpoints per user.
 
@@ -23,7 +23,7 @@ def s2_avg_max_min_trackpoints_per_user():
         cursor.execute(query)
         coloumns = ["Average", "Maximum", "Minimum "]
         data = cursor.fetchall()
-        printtable(data, coloumns)
+        print_table(data, coloumns)
         db_connection.close()
         connection.close_connection()
 

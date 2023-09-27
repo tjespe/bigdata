@@ -1,5 +1,5 @@
 from DbConnector import DbConnector
-from helpers import printtable
+from helpers import print_table
 
 # Find the top 15 users with the highest number of activities
 
@@ -10,7 +10,7 @@ def top_15_users_by_higest_num_activities():
 
     query = """ 
             SELECT User.id AS user_id, COUNT(Activity.id) AS activity_count
-            FROM User LEFT JOIN Activity ON User.id = Activity.id
+            FROM User LEFT JOIN Activity ON User.id = Activity.user_id
             GROUP BY User.id
             ORDER BY activity_count DESC
             LIMIT 15;
@@ -21,8 +21,7 @@ def top_15_users_by_higest_num_activities():
 
     if result:
         columns = ["User ID", "Activity count"]
-        result = [[row["user_id"], row["activity_count"]] for row in result]
-        printtable(result, columns)
+        print_table(result, columns)
     else:
         print("No data found")
     

@@ -1,5 +1,5 @@
 from DbConnector import DbConnector
-from helpers import printtable
+from helpers import print_table
 
 # Find the number of users which have been close to each other in time and space.
 # Close is defined as the same space (50 meters) and for the same half minute (30 seconds)
@@ -17,6 +17,6 @@ def s8_users_close_in_time_and_space():
     coloumns = []
     data = cursor.fetchall()
     # can also use cursor.fetchmany(10) to get first 10 rows
-    printtable(data, coloumns)
+    print_table(data, coloumns)
     db_connection.close()
     connection.close_connection()

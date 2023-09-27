@@ -1,5 +1,5 @@
 from DbConnector import DbConnector
-from helpers import printtable
+from helpers import print_table
 
 # Find activities that are registered multiple times. You should find the query even if it gives zero result.
 
@@ -20,8 +20,7 @@ def activities_registered_multiple_times():
 
     if result:
         columns = ["User ID", "Transportation Mode", "Start DateTime", "End Date Time"]
-        result = [(row["user_id", "transportation_mode", "start_date_time", "end_date_time"]) for row in result]
-        printtable(result, columns)
+        print_table(result, columns)
     else:
         print("No data found")
     

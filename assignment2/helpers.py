@@ -1,4 +1,4 @@
 from tabulate import tabulate
 
-def printtable(data, coloumns):
+def print_table(data, coloumns):
     print(tabulate(data, headers=coloumns, tablefmt='fancy_grid'))

@@ -1,5 +1,5 @@
 from DbConnector import DbConnector
-from helpers import printtable
+from helpers import print_table
 
 # Find the number of users that have started an activity in one day and ended the activity the next day.
 # List the transportation mode, user id and duration for these activities.
@@ -23,7 +23,7 @@ def users_started_and_ended_activity_on_different_days():
     if result:
         columns = ["User ID", "Transportation Mode", "Start DateTime", "End Date Time"]
         result = [(row["user_id", "transportation_mode", "start_date_time", "end_date_time"]) for row in result]
-        printtable(result, columns)
+        print_table(result, columns)
     else:
         print("No data found")
     
