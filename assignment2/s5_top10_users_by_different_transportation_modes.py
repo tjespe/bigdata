@@ -12,7 +12,7 @@ def s5_top10_users_by_different_transportation_modes():
                 SELECT User.id AS User, COUNT(DISTINCT transportation_mode) num_different_transports
                 FROM User INNER JOIN Activity ON User.id = Activity.user_id
                 GROUP BY User.id 
-                ORDER BY num_different_transports
+                ORDER BY num_different_transports 
                 LIMIT 10
                 """
         cursor.execute(query)
