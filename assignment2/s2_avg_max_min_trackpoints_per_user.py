@@ -9,10 +9,12 @@ def s2_avg_max_min_trackpoints_per_user():
         cursor = connection.cursor
 
         query = """
-                SELECT AVG(COUNT(TrackPoint.id)) AS Average, MAX(COUNT(TrackPoint.id)) AS Maximum, MIN(COUNT(TrackPoint.id)) as Minimum
-                FROM User INNER JOIN ACTIVITY ON User.id = Activity.user_id INNER JOIN TrackPoint ON Activity.id = TrackPoint.activity_id
-                 GROUP BY User.id
-
+                SELECT AVG(COUNT(TrackPointCount)) AS Average, MAX(COUNT(TrackPointCount)) AS Maximum, MIN(COUNT(TrackPointCount)) as Minimum
+                FROM (
+                        SELECT COUNT(TrackPoint.id) AS TrackPointCount
+                        FROM User INNER JOIN Activity ON User.id = Activity.user_id INNER JOIN TrackPoint ON Activity.id = TrackPoint.activity_id
+                        GROUP BY User.id, Activity.id
+                ) AS JoinedTable
                 """
         cursor.execute(query)
         coloumns = ["Average", "Maximum", "Minimum "]
