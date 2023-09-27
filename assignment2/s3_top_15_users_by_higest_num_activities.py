@@ -1,17 +1,21 @@
 from DbConnector import DbConnector
 
-# How many users, activities and trackpoints are there in the dataset?
+# Find the top 15 users with the highest number of activities
 
-def num_users_activites_trackpoints():
+def top_15_users_by_higest_num_activities():
     connection = DbConnector()
     db_connection = connection.db_connection
     cursor = connection.cursor
 
     query = """ 
-            SELECT
-             (SELECT COUNT(*) FROM User) AS user_count,
-             (SELECT COUNT(*) FROM Activity) AS activity_count,
-             (SELECT COUNT(*) FROM TrackPoint) AS trackpoint_count
+            SELECT activity.id AS user_id, COUNT(activity.id) AS activity_count
+            
+
+
+            SELECT AVG(COUNT(TrackPoint.id)) AS Average, MAX(COUNT(TrackPoint.id)) AS Maximum, MIN(COUNT(TrackPoint.id)) as Minimum
+            FROM User INNER JOIN Activity ON User.id = Activity.user_id INNER JOIN TrackPoint ON Activity.id = TrackPoint.activity_id
+            GROUP BY User.id
+
             """
     
     cursor.execute(query)
@@ -29,4 +33,4 @@ def num_users_activites_trackpoints():
     connection.close_connection()
 
 if __name__ == "__main__":
-    num_users_activites_trackpoints()
+    top_15_users_by_higest_num_activities()
