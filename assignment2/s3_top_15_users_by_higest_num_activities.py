@@ -21,7 +21,7 @@ def top_15_users_by_higest_num_activities():
 
     if result:
         columns = ["User ID", "Activity count"]
-        result = [(row["user_id"], row["activity_count"]) for row in result]
+        result = [[row["user_id"], row["activity_count"]] for row in result]
         printtable(result, columns)
     else:
         print("No data found")
