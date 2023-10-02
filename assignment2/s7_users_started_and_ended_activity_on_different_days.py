@@ -4,7 +4,6 @@ from helpers import print_table
 # Find the number of users that have started an activity in one day and ended the activity the next day.
 # List the transportation mode, user id and duration for these activities.
 
-
 def users_started_and_ended_activity_on_different_days():
     connection = DbConnector()
     db_connection = connection.db_connection
