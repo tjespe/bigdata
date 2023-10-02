@@ -3,3 +3,7 @@ __MACOSX
 dataset.zip
 dataset/
 User-Guide-1.3.pdf
+pyntcloud_plot_assets
+pyntcloud_plot.config.json
+pyntcloud_plot.html
+pyntcloud_plot.ply
