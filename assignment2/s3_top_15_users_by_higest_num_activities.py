@@ -9,12 +9,12 @@ def top_15_users_by_higest_num_activities():
     cursor = connection.cursor
 
     query = """ 
-        SELECT User.id AS user_id, COUNT(Activity.id) AS activity_count
-        FROM User LEFT JOIN Activity ON User.id = Activity.user_id
-        GROUP BY User.id
-        ORDER BY activity_count DESC
-        LIMIT 15;
-    """
+            SELECT User.id AS user_id, COUNT(Activity.id) AS activity_count
+            FROM User LEFT JOIN Activity ON User.id = Activity.user_id
+            GROUP BY User.id
+            ORDER BY activity_count DESC
+            LIMIT 15;
+            """
     
     cursor.execute(query)
     result = cursor.fetchall()

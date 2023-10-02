@@ -9,11 +9,11 @@ def activities_registered_multiple_times():
     cursor = connection.cursor
 
     query = """  
-            SELECT user_id, transportation_mode, start_date_time, end_date_time
-            FROM Activity
-            GROUP BY user_id, transportation_mode, start_date_time, end_date_time 
-            HAVING COUNT(*) > 1;
-            """
+        SELECT user_id, transportation_mode, start_date_time, end_date_time
+        FROM Activity
+        GROUP BY user_id, transportation_mode, start_date_time, end_date_time 
+        HAVING COUNT(*) > 1;
+    """
     
     cursor.execute(query)
     result = cursor.fetchall()

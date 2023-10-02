@@ -10,20 +10,20 @@ def users_started_and_ended_activity_on_different_days():
     cursor = connection.cursor
 
     query_count_users = """
-                        SELECT COUNT(DISTINCT user_id)
-                        FROM Activity
-                        WHERE DATEDIFF(end_date_time, start_date_time) = 1;
-                        """
+        SELECT COUNT(DISTINCT user_id)
+        FROM Activity
+        WHERE DATEDIFF(end_date_time, start_date_time) = 1;
+    """
     
     cursor.execute(query_count_users)
     user_count = cursor.fetchone()
 
 
     query_activities =  """  
-                        SELECT user_id, transportation_mode, TIMEDIFF(end_date_time, start_date_time) AS duration, start_date_time, end_date_time
-                        FROM Activity
-                        WHERE DATEDIFF(end_date_time, start_date_time) = 1;
-                        """
+        SELECT user_id, transportation_mode, TIMEDIFF(end_date_time, start_date_time) AS duration, start_date_time, end_date_time
+        FROM Activity
+        WHERE DATEDIFF(end_date_time, start_date_time) = 1;
+    """
     
     cursor.execute(query_activities)
     result = cursor.fetchall()

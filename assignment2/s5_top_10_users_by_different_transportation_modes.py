@@ -9,21 +9,23 @@ def top_10_users_by_different_transportation_modes():
     cursor = connection.cursor
 
     query = """
-            SELECT User.id, COUNT(DISTINCT Activity.transportation_mode) AS num_different_transports
-            FROM User INNER JOIN Activity ON User.id = Activity.user_id
-            GROUP BY User.id 
-            ORDER BY num_different_transports DESC
-            LIMIT 10
-            """
+        SELECT
+            user_id,
+            COUNT(DISTINCT Activity.transportation_mode) AS num_different_transports
+        FROM Activity
+        GROUP BY user_id
+        ORDER BY num_different_transports DESC
+        LIMIT 10
+    """
 
     cursor.execute(query)
     result = cursor.fetchall()
 
     if result:
-            columns = ["User", "Number of different transports"]
-            print_table(result, columns)
+        columns = ["User", "Number of different transports"]
+        print_table(result, columns)
     else:
-            print("No data found")
+        print("No data found")
     
     db_connection.close()
     connection.close_connection()
