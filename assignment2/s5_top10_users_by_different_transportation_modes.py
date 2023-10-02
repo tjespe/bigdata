@@ -1,7 +1,7 @@
 from DbConnector import DbConnector
 from helpers import print_table
 
-#List the top 10 users by their amount of different transportation modes.
+# List the top 10 users by their amount of different transportation modes.
 
 def s5_top10_users_by_different_transportation_modes():
         connection = DbConnector()

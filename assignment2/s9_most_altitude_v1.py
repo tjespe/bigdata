@@ -1,6 +1,7 @@
 from DbConnector import DbConnector
 from helpers import print_table
 
+# Find the top 15 users who have gained the most altitude meters.
 
 def get_users_with_most_altitude_gain():
     connection = DbConnector()

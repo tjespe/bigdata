@@ -19,10 +19,12 @@ def activities_registered_multiple_times():
     result = cursor.fetchall()
 
     if result:
-        columns = ["User ID", "Transportation Mode", "Start DateTime", "End Date Time"]
+        columns = ["User ID", "Transportation Mode", "Start Date Time", "End Date Time"]
         print_table(result, columns)
     else:
         print("No data found")
+        columns = ["User ID", "Transportation Mode", "Start Date Time", "End Date Time"]
+        print_table(result, columns)
     
     db_connection.close()
     connection.close_connection()

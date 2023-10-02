@@ -9,18 +9,16 @@ def top_15_users_by_higest_num_activities():
     cursor = connection.cursor
 
     query = """ 
-            SELECT User.id AS user_id, COUNT(Activity.id) AS activity_count
-            FROM User LEFT JOIN Activity ON User.id = Activity.user_id
-            GROUP BY User.id
-            ORDER BY activity_count DESC
-            LIMIT 15;
+            SELECT * 
+            FROM TrackPoint
+            LIMIT 10
             """
     
     cursor.execute(query)
     result = cursor.fetchall()
 
     if result:
-        columns = ["User ID", "Activity count"]
+        columns = ["id", "activity_id", "lat", "prev_lat", "lon", "prev_lon", "altitude", "altitude_diff", "date_days", "date_time"]
         print_table(result, columns)
     else:
         print("No data found")

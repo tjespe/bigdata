@@ -9,10 +9,9 @@ def users_that_have_taken_the_bus():
     cursor = connection.cursor
 
     query = """ 
-            SELECT DISTINCT User.id AS user_id
+            SELECT DISTINCT User.id
             FROM User LEFT JOIN Activity ON User.id = Activity.user_id
             WHERE Activity.transportation_mode = 'bus'
-            GROUP BY User.id
             """
     
     cursor.execute(query)

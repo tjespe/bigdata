@@ -144,6 +144,7 @@ class CreateDatabase:
                 activity_id = self.cursor.lastrowid
                 # Create TrackPoint objects
                 trackpoints = []
+                # TODO: calculate Haversine distance between lat, lon and prev_lat, prev_lon
                 prev_row = None
                 for _, row in df.iterrows():
                     altitude_diff = None
