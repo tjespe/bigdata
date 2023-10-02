@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
+from helpers import haversine_np
+
 # Change this if dataset is located somewhere else
 DATASET_PATH = os.path.join(os.path.dirname(__file__), "..", "dataset", "Data")
 
@@ -42,11 +44,11 @@ class CreateDatabase:
                 id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
                 activity_id INT NOT NULL,
                 lat DOUBLE NOT NULL,
-                prev_lat DOUBLE,
                 lon DOUBLE NOT NULL,
-                prev_lon DOUBLE,
                 altitude INT,
                 altitude_diff INT,
+                meters_moved DOUBLE,
+                minutes_diff DOUBLE,
                 date_days DOUBLE NOT NULL,
                 date_time DATETIME NOT NULL,
                 FOREIGN KEY (activity_id) REFERENCES Activity(id)
@@ -105,10 +107,11 @@ class CreateDatabase:
         """
         Add data to Activity and TrackPoint tables based on the files in the dataset (../dataset/Data)
         """
+        subdir_names = os.listdir(DATASET_PATH)
+        user_ids = [int(subdir_name) for subdir_name in subdir_names]
 
         # Iterate over all subdir names in the dataset
-        for subdir_name in os.listdir(DATASET_PATH):
-            user_id = int(subdir_name)
+        for subdir_name, user_id in sorted(zip(subdir_names, user_ids), key=lambda x: x[1]):
             print("Inserting data for user", user_id)
 
             # Iterate over all files in the Trajectory subdir of the subdir
@@ -142,24 +145,32 @@ class CreateDatabase:
                 self.db_connection.commit()
                 # Get the id of the inserted Activity object
                 activity_id = self.cursor.lastrowid
+                # Calculate Haversine distance moved between (lat, lon) and previous (lat, lon)
+                df["prev_lon"] = df["lon"].shift(1)
+                df["prev_lat"] = df["lat"].shift(1)
+                df["meters_moved"] = haversine_np(df["lon"], df["lat"], df["prev_lon"], df["prev_lat"])
+                # Convert altitude from feet to meters
+                df["altitude"] = df["altitude"] * 0.3048
+                # Add altitude_diff column representing the difference between current altitude and previous altitude
+                df["altitude_diff"] = df["altitude"].diff()
+                # Add time diff since last trackpoint
+                df["minutes_diff"] = df["date_days"].diff()*24*60
                 # Create TrackPoint objects
                 trackpoints = []
-                # TODO: calculate Haversine distance between lat, lon and prev_lat, prev_lon
-                prev_row = None
                 for _, row in df.iterrows():
-                    altitude_diff = None
-                    prev_lat = None
-                    prev_lon = None
-                    if prev_row is not None:
-                        if not np.isnan(prev_row["altitude"]):
-                            altitude_diff = row["altitude"] - prev_row["altitude"]
-                        prev_lat = prev_row["lat"]
-                        prev_lon = prev_row["lon"]
-                    trackpoint = (activity_id, row["lat"], prev_lat, row["lon"], prev_lon, row["altitude"], altitude_diff, row["date_days"], row["date"] + " " + row["time"])
+                    altitude_diff = row["altitude_diff"]
+                    if np.isnan(altitude_diff):
+                        altitude_diff = None
+                    meters_moved = row["meters_moved"]
+                    if np.isnan(meters_moved):
+                        meters_moved = None
+                    minutes_diff = row["minutes_diff"]
+                    if np.isnan(minutes_diff):
+                        minutes_diff = None
+                    trackpoint = (activity_id, row["lat"], row["lon"], row["altitude"], altitude_diff, meters_moved, minutes_diff, row["date_days"], row["date"] + " " + row["time"])
                     trackpoints.append(trackpoint)
-                    prev_row = row
                 # Bulk insert TrackPoint objects into TrackPoint table
-                query = "INSERT INTO TrackPoint (activity_id, lat, prev_lat, lon, prev_lon, altitude, altitude_diff, date_days, date_time) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                query = "INSERT INTO TrackPoint (activity_id, lat, lon, altitude, altitude_diff, meters_moved, minutes_diff, date_days, date_time) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
                 self.cursor.executemany(query, trackpoints)
                 self.db_connection.commit()
 
