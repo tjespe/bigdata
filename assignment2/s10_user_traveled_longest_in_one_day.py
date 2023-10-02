@@ -9,23 +9,13 @@ def user_traveled_longest_in_one_day():
     connection = DbConnector()
     db_connection = connection.db_connection
     cursor = connection.cursor
+    cursor.execute("SELECT DISTINCT transportation_mode FROM Activity;")
+    result = cursor.fetchall()
+    transportation_modes = [row[0] for row in result if row[0] is not None]
 
-    for transportation_mode in [
-        "walk",
-        "taxi",
-        "subway",
-        "bike",
-        "car",
-        "bus",
-        "airplane",
-        "train",
-        "boat",
-        "run",
-    ]:
+    for transportation_mode in transportation_modes:
         query = f""" 
-                SELECT Activity.user_id AS user_id, SUM(
-                    SQRT(POWER(TrackPoint.lat-TrackPoint.prev_lat, 2) + POWER(TrackPoint.lon-TrackPoint.prev_lon, 2))
-                ) AS total_distance
+                SELECT Activity.user_id AS user_id, SUM(meters_moved) AS total_distance
                 FROM TrackPoint INNER JOIN Activity ON Activity.id = TrackPoint.activity_id
                 WHERE Activity.transportation_mode = '{transportation_mode}'
                 GROUP BY user_id, DATE(Activity.start_date_time)
