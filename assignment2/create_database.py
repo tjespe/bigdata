@@ -45,12 +45,13 @@ class CreateDatabase:
                 activity_id INT NOT NULL,
                 lat DOUBLE NOT NULL,
                 lon DOUBLE NOT NULL,
-                altitude INT,
-                altitude_diff INT,
+                altitude DOUBLE,
+                altitude_diff DOUBLE,
                 meters_moved DOUBLE,
                 minutes_diff DOUBLE,
                 date_days DOUBLE NOT NULL,
                 date_time DATETIME NOT NULL,
+                euclidian_radial DOUBLE NOT NULL,
                 FOREIGN KEY (activity_id) REFERENCES Activity(id)
             )
             """
@@ -68,6 +69,9 @@ class CreateDatabase:
         queries = [
             """
             ALTER TABLE TrackPoint ADD INDEX idx_trackpoint_activity_date (activity_id, date_days)
+            """,
+            """
+            ALTER TABLE TrackPoint ADD INDEX idx_trackpoint_euclidian_radial (euclidian_radial)
             """
         ]
         for query in queries:
@@ -126,7 +130,7 @@ class CreateDatabase:
                 if len(relevant_lines) > 2500:
                     continue
                 # The remaining relevant files can be read as a csv
-                df = pd.read_csv(StringIO("".join(relevant_lines)), header=None)
+                df: pd.DataFrame = pd.read_csv(StringIO("".join(relevant_lines)), header=None)
                 # These columns correspond to the columns in the csv
                 df.columns = ["lat", "lon", "irrelevant", "altitude", "date_days", "date", "time"]
                 # Change lat, lon, altitude and date_days to correct types
@@ -155,6 +159,24 @@ class CreateDatabase:
                 df["altitude_diff"] = df["altitude"].diff()
                 # Add time diff since last trackpoint
                 df["minutes_diff"] = df["date_days"].diff()*24*60
+                # Calculate a radial distance in a Euclidian space with two dimensions
+                # (distance from center of world and date_days) used for querying for
+                # users that have been close to each other in time and space.
+                # First, we calculate the Haversine distance of each point to the
+                # center of the world.
+                df["physical_radial"] = haversine_np(df["lon"], df["lat"], np.zeros(df.shape[0]), np.zeros(df.shape[0]))
+                # Then, we want to also account for altitude differences by using Pythagoras
+                df["physical_radial"] = np.sqrt(df["physical_radial"]**2 + df["altitude"]**2)
+                # Then, we have to normalize both dimensions to match the scale of the other dimension.
+                # When we query for proximity, we look for users that have been less than 50 meters from
+                # each other within a time frame of 30 seconds, thus we want 30 seconds to equal 50 meters
+                # in our Euclidian space.
+                # For simplicity, we want both of these limits to equal a distance of 1 in our Euclidian space,
+                # so that all relevant points must be less than sqrt(2) from each other in Euclidian distance.
+                df["seconds"] = df["date_days"] * 24 * 60 * 60
+                df["time_dimension"] = df["seconds"] / 30
+                df["physical_radial"] = df["physical_radial"] / 50
+                df["euclidian_radial"] = np.sqrt(df["physical_radial"]**2 + df["time_dimension"]**2)
                 # Create TrackPoint objects
                 trackpoints = []
                 for _, row in df.iterrows():
@@ -167,10 +189,10 @@ class CreateDatabase:
                     minutes_diff = row["minutes_diff"]
                     if np.isnan(minutes_diff):
                         minutes_diff = None
-                    trackpoint = (activity_id, row["lat"], row["lon"], row["altitude"], altitude_diff, meters_moved, minutes_diff, row["date_days"], row["date"] + " " + row["time"])
+                    trackpoint = (activity_id, row["lat"], row["lon"], row["altitude"], altitude_diff, meters_moved, minutes_diff, row["date_days"], row["date"] + " " + row["time"], row["euclidian_radial"])
                     trackpoints.append(trackpoint)
                 # Bulk insert TrackPoint objects into TrackPoint table
-                query = "INSERT INTO TrackPoint (activity_id, lat, lon, altitude, altitude_diff, meters_moved, minutes_diff, date_days, date_time) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                query = "INSERT INTO TrackPoint (activity_id, lat, lon, altitude, altitude_diff, meters_moved, minutes_diff, date_days, date_time, euclidian_radial) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
                 self.cursor.executemany(query, trackpoints)
                 self.db_connection.commit()
 
