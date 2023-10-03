@@ -1,6 +1,6 @@
 
 
-from project.assignment2.DbConnector import DbConnector
+from DbConnector import DbConnector
 
 
 def num_users_activites_trackpoints():
@@ -11,13 +11,23 @@ def num_users_activites_trackpoints():
     query = """ 
             SELECT
              (SELECT COUNT(*) FROM User) AS user_count,
-             (SELECT COUNT(*) FROM Activities) AS activity_count,
-             (SELECT COUNT(*) FROM TrackPoints) AS trackpoint_count,
+             (SELECT COUNT(*) FROM Activity) AS activity_count,
+             (SELECT COUNT(*) FROM TrackPoint) AS trackpoint_count
             """
     
-    
-    cursor.execute(query % table_name)
-    db_connection.commit()
+    cursor.execute(query)
+    result = cursor.fetchone()
 
+    if result:
+        user_count, activity_count, trackpoint_count = result
+        print(f"Number of users: {user_count}")
+        print(f"Number of activities: {activity_count}")
+        print(f"Number of trackpoints: {trackpoint_count}")
+    else:
+        print("No data found")
+    
+    db_connection.close()
     connection.close_connection()
 
+if __name__ == "__main__":
+    num_users_activites_trackpoints()
