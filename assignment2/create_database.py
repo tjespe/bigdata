@@ -1,5 +1,12 @@
+from io import StringIO
+import os
 from DbConnector import DbConnector
 from tabulate import tabulate
+from datetime import datetime, timezone
+
+import pandas as pd
+
+DATASET_PATH = os.path.join(os.path.dirname(__file__), "..", "dataset", "Data")
 
 
 class CreateDatabase:
@@ -13,7 +20,7 @@ class CreateDatabase:
         queries = [
             """
             CREATE TABLE IF NOT EXISTS User (
-                id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
+                id INT NOT NULL PRIMARY KEY,
                 has_labels boolean
             )
             """,
@@ -21,7 +28,7 @@ class CreateDatabase:
             CREATE TABLE IF NOT EXISTS Activity (
                 id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
                 user_id INT NOT NULL,
-                transportation_mode VARCHAR(30) NOT NULL,
+                transportation_mode VARCHAR(30),
                 start_date_time DATETIME NOT NULL,
                 end_date_time DATETIME NOT NULL,
                 FOREIGN KEY (user_id) REFERENCES User(id)
@@ -46,14 +53,109 @@ class CreateDatabase:
             self.cursor.execute(query)
             self.db_connection.commit()
 
-    def insert_data(self):
-        """ names = ['Bobby', 'Mc', 'McSmack', 'Board']
-        for name in names:
-            # Take note that the name is wrapped in '' --> '%s' because it is a string,
-            # while an int would be %s etc
-            query = "INSERT INTO %s (name) VALUES ('%s')"
-            self.cursor.execute(query % (table_name, name))
-        self.db_connection.commit() """
+    def insert_user_data(self):
+        """
+        Add data to User table based on the subdir names in the dataset (../dataset/Data)
+        """
+        # Get all subdir names in the dataset
+        subdir_names = os.listdir(DATASET_PATH)
+        print("Found %d users in dataset" % len(subdir_names))
+        print(subdir_names)
+        user_ids = set([int(subdir_name) for subdir_name in subdir_names])
+
+        # Get list of users that have labels (from dataset/Data/labels.txt)
+        labels_path = os.path.join(os.path.dirname(__file__), "..", "dataset", "labeled_ids.txt")
+        with open(labels_path, "r") as f:
+            lines = f.readlines()
+            labels = [line.split(" ")[0] for line in lines]
+            user_ids_with_labels = set([int(label) for label in labels])
+            print("Found %d users with labels" % len(user_ids_with_labels))
+            print(user_ids_with_labels)
+
+        # Bulk insert into User table
+        query = "INSERT INTO User (id, has_labels) VALUES (%s, %s)"
+        values = [(user_id, user_id in user_ids_with_labels) for user_id in user_ids]
+        self.cursor.executemany(query, values)
+        self.db_connection.commit()
+
+    def insert_activity_and_trackpoint_data(self):
+        """
+        Add data to Activity and TrackPoint tables based on the files in the dataset (../dataset/Data)
+        """
+
+        # Iterate over all subdir names in the dataset
+        for subdir_name in os.listdir(DATASET_PATH):
+            user_id = int(subdir_name)
+            print("Inserting data for user", user_id)
+
+            # Iterate over all files in the Trajectory subdir of the subdir
+            # and create Activity objects
+            trajectory_path = os.path.join(DATASET_PATH, subdir_name, "Trajectory")
+            for activity_file_name in os.listdir(trajectory_path):
+                with open(os.path.join(trajectory_path, activity_file_name), "r") as f:
+                    lines = f.readlines()
+                    # The first 6 lines are irrelevant
+                    relevant_lines = lines[6:]
+                # If there are more than 2500 trackpoints, we want to exclude the file (as specified in the assignment)
+                if len(relevant_lines) > 2500:
+                    continue
+                # The remaining relevant files can be read as a csv
+                df = pd.read_csv(StringIO("".join(relevant_lines)), header=None)
+                # These columns correspond to the columns in the csv
+                df.columns = ["lat", "lon", "irrelevant", "altitude", "date_days", "date", "time"]
+                # Create Activity object
+                start_time = datetime.strptime(df["date"][0] + " " + df["time"][0], "%Y-%m-%d %H:%M:%S")
+                end_time = datetime.strptime(df["date"][len(df) - 1] + " " + df["time"][len(df) - 1], "%Y-%m-%d %H:%M:%S")
+                # transportation_mode = transportation_modes.get((start_time, end_time), None)
+                activity = (user_id, None, start_time, end_time)
+                # Insert Activity object into Activity table
+                query = "INSERT INTO Activity (user_id, transportation_mode, start_date_time, end_date_time) VALUES (%s, %s, %s, %s)"
+                self.cursor.execute(query, activity)
+                self.db_connection.commit()
+                # Get the id of the inserted Activity object
+                activity_id = self.cursor.lastrowid
+                # Create TrackPoint objects
+                trackpoints = []
+                for _, row in df.iterrows():
+                    trackpoint = (activity_id, row["lat"], row["lon"], row["altitude"], row["date_days"], row["date"] + " " + row["time"])
+                    trackpoints.append(trackpoint)
+                # Bulk insert TrackPoint objects into TrackPoint table
+                query = "INSERT INTO TrackPoint (activity_id, lat, lon, altitude, date_days, date_time) VALUES (%s, %s, %s, %s, %s, %s)"
+                self.cursor.executemany(query, trackpoints)
+                self.db_connection.commit()
+
+    def set_transportation_modes(self):
+        # Get users from database that have labels
+        query = "SELECT id FROM User WHERE has_labels = 1"
+        self.cursor.execute(query)
+        rows = self.cursor.fetchall()
+        user_ids = [row[0] for row in rows]
+        print("Found %d users with labels" % len(user_ids))
+        print(user_ids)
+
+        # Iterate over all users with labels
+        for user_id in user_ids:
+            print("Updating transportation modes for user", user_id)
+
+            # Get transportation modes from subdir_name/labels.txt
+            subdir_name = str(user_id).rjust(3, "0")
+            labels_path = os.path.join(DATASET_PATH, subdir_name, "labels.txt")
+            update_values = []
+            with open(labels_path, "r") as f:
+                lines = f.readlines()
+                for line in lines[1:]:
+                    start_time, end_time, transportation_mode = line.split("\t")
+                    start_time = datetime.strptime(start_time, "%Y/%m/%d %H:%M:%S").replace(tzinfo=timezone.utc)
+                    end_time = datetime.strptime(end_time, "%Y/%m/%d %H:%M:%S").replace(tzinfo=timezone.utc)
+                    update_values.append((transportation_mode, user_id, start_time, end_time))
+
+            # Bulk update Activity table
+            query = "UPDATE Activity SET transportation_mode = %s WHERE user_id = %s AND start_date_time = %s AND end_date_time = %s"
+            self.cursor.executemany(query, update_values)
+            self.db_connection.commit()
+        
+        print("Set transportation modes for all users")
+
 
     def fetch_data(self, table_name):
         query = "SELECT * FROM %s"
@@ -71,6 +173,11 @@ class CreateDatabase:
         query = "DROP TABLE %s"
         self.cursor.execute(query % table_name)
 
+    def drop_all_tables(self):
+        print("Dropping all tables...")
+        query = "DROP TABLE User, Activity, TrackPoint"
+        self.cursor.execute(query)
+
     def show_tables(self):
         self.cursor.execute("SHOW TABLES")
         rows = self.cursor.fetchall()
@@ -81,9 +188,13 @@ def main():
     program = None
     try:
         program = CreateDatabase()
+        # program.drop_all_tables()
+        # program.drop_table(table_name="User")
         program.create_tables()
-        # program.insert_data(table_name="User")
-        # _ = program.fetch_data(table_name="User")
+        # program.insert_user_data()
+        _ = program.fetch_data(table_name="User")
+        # program.insert_activity_and_trackpoint_data()
+        program.set_transportation_modes()
         # program.drop_table(table_name="User")
         # program.show_tables()
     except Exception as e:
