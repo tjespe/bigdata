@@ -15,7 +15,6 @@ DATASET_PATH = os.path.join(os.path.dirname(__file__), "..", "dataset", "Data")
 
 
 class CreateDatabase:
-
     def __init__(self):
         self.connection = DbConnector()
         self.db_connection = self.connection.db_connection
@@ -54,7 +53,7 @@ class CreateDatabase:
                 euclidian_radial DOUBLE NOT NULL,
                 FOREIGN KEY (activity_id) REFERENCES Activity(id)
             )
-            """
+            """,
         ]
 
         for query in queries:
@@ -72,7 +71,7 @@ class CreateDatabase:
             """,
             """
             ALTER TABLE TrackPoint ADD INDEX idx_trackpoint_euclidian_radial (euclidian_radial)
-            """
+            """,
         ]
         for query in queries:
             print("Executing", query)
@@ -93,7 +92,9 @@ class CreateDatabase:
         user_ids = set([int(subdir_name) for subdir_name in subdir_names])
 
         # Get list of users that have labels (from dataset/Data/labels.txt)
-        labels_path = os.path.join(os.path.dirname(__file__), "..", "dataset", "labeled_ids.txt")
+        labels_path = os.path.join(
+            os.path.dirname(__file__), "..", "dataset", "labeled_ids.txt"
+        )
         with open(labels_path, "r") as f:
             lines = f.readlines()
             labels = [line.split(" ")[0] for line in lines]
@@ -107,6 +108,42 @@ class CreateDatabase:
         self.cursor.executemany(query, values)
         self.db_connection.commit()
 
+    def create_activities_for_users_using_labels(self):
+        # Get users from database that have labels
+        query = "SELECT id FROM User WHERE has_labels = 1"
+        self.cursor.execute(query)
+        rows = self.cursor.fetchall()
+        user_ids = [row[0] for row in rows]
+        print("Found %d users with labels" % len(user_ids))
+        print(user_ids)
+
+        # Iterate over all users with labels
+        for user_id in user_ids:
+            print("Creating activities for user", user_id)
+
+            # Get transportation modes from subdir_name/labels.txt
+            subdir_name = str(user_id).rjust(3, "0")
+            labels_path = os.path.join(DATASET_PATH, subdir_name, "labels.txt")
+            activites_to_add = []
+            with open(labels_path, "r") as f:
+                lines = f.readlines()
+                for line in lines[1:]:
+                    start_time, end_time, transportation_mode = line.split("\t")
+                    activites_to_add.append(
+                        (
+                            user_id,
+                            transportation_mode.strip(),
+                            start_time,
+                            end_time,
+                        )
+                    )
+
+            # Bulk update Activity table
+            print(activites_to_add)
+            query = "INSERT INTO Activity (user_id, transportation_mode, start_date_time, end_date_time) VALUES (%s, %s, %s, %s)"
+            self.cursor.executemany(query, activites_to_add)
+            self.db_connection.commit()
+
     def insert_activity_and_trackpoint_data(self):
         """
         Add data to Activity and TrackPoint tables based on the files in the dataset (../dataset/Data)
@@ -114,8 +151,13 @@ class CreateDatabase:
         subdir_names = os.listdir(DATASET_PATH)
         user_ids = [int(subdir_name) for subdir_name in subdir_names]
 
+        self.cursor.execute("SELECT id FROM User WHERE has_labels = 1")
+        users_using_labels = [row[0] for row in self.cursor.fetchall()]
+
         # Iterate over all subdir names in the dataset
-        for subdir_name, user_id in sorted(zip(subdir_names, user_ids), key=lambda x: x[1]):
+        for subdir_name, user_id in sorted(
+            zip(subdir_names, user_ids), key=lambda x: x[1]
+        ):
             print("Inserting data for user", user_id)
 
             # Iterate over all files in the Trajectory subdir of the subdir
@@ -126,47 +168,94 @@ class CreateDatabase:
                     lines = f.readlines()
                     # The first 6 lines are irrelevant
                     relevant_lines = lines[6:]
-                # If there are more than 2500 trackpoints, we want to exclude the file (as specified in the assignment)
-                if len(relevant_lines) > 2500:
-                    continue
                 # The remaining relevant files can be read as a csv
-                df: pd.DataFrame = pd.read_csv(StringIO("".join(relevant_lines)), header=None)
+                df: pd.DataFrame = pd.read_csv(
+                    StringIO("".join(relevant_lines)), header=None
+                )
                 # These columns correspond to the columns in the csv
-                df.columns = ["lat", "lon", "irrelevant", "altitude", "date_days", "date", "time"]
+                df.columns = [
+                    "lat",
+                    "lon",
+                    "irrelevant",
+                    "altitude",
+                    "date_days",
+                    "date",
+                    "time",
+                ]
                 # Change lat, lon, altitude and date_days to correct types
                 for col in ["lat", "lon", "altitude", "date_days"]:
                     df[col] = df[col].astype(float)
                 # Some altitude values are missing, so we set them to nan
-                df.loc[df["altitude"] == -777, "altitude"].fillna(inplace=True, value=float("nan"))
-                # Create Activity object
-                start_time = datetime.strptime(df["date"][0] + " " + df["time"][0], "%Y-%m-%d %H:%M:%S")
-                end_time = datetime.strptime(df["date"][len(df) - 1] + " " + df["time"][len(df) - 1], "%Y-%m-%d %H:%M:%S")
-                # transportation_mode = transportation_modes.get((start_time, end_time), None)
-                activity = (user_id, None, start_time, end_time)
-                # Insert Activity object into Activity table
-                query = "INSERT INTO Activity (user_id, transportation_mode, start_date_time, end_date_time) VALUES (%s, %s, %s, %s)"
-                self.cursor.execute(query, activity)
-                self.db_connection.commit()
-                # Get the id of the inserted Activity object
-                activity_id = self.cursor.lastrowid
+                df.loc[df["altitude"] == -777, "altitude"].fillna(
+                    inplace=True, value=float("nan")
+                )
+                df["activity_id"] = np.nan
+                if user_id in users_using_labels:
+                    # Find the appropriate activity IDs for every trackpoint
+                    for i in range(len(df)):
+                        date_time = df["date"][i] + " " + df["time"][i]
+                        activity_id_query = "SELECT id FROM Activity WHERE user_id = %s AND start_date_time <= %s AND end_date_time >= %s"
+                        self.cursor.execute(
+                            activity_id_query, (user_id, date_time, date_time)
+                        )
+                        result = self.cursor.fetchone()
+                        # In case there are multiple activities for the same user at the same time,
+                        # fetchone will not completely read the results, and the cursor must be reset
+                        self.cursor.reset()
+                        if result is not None:
+                            df.at[i, "activity_id"] = result[0]
+                else:
+                    # Create Activity object
+                    start_time = datetime.strptime(
+                        df["date"][0] + " " + df["time"][0], "%Y-%m-%d %H:%M:%S"
+                    )
+                    end_time = datetime.strptime(
+                        df["date"][len(df) - 1] + " " + df["time"][len(df) - 1],
+                        "%Y-%m-%d %H:%M:%S",
+                    )
+                    # transportation_mode = transportation_modes.get((start_time, end_time), None)
+                    activity = (user_id, None, start_time, end_time)
+                    # Insert Activity object into Activity table
+                    query = "INSERT INTO Activity (user_id, transportation_mode, start_date_time, end_date_time) VALUES (%s, %s, %s, %s)"
+                    self.cursor.execute(query, activity)
+                    self.db_connection.commit()
+                    # Get the id of the inserted Activity object, and use as ID for
+                    # all TrackPoint objects in this dataframe
+                    activity_id = self.cursor.lastrowid
+                    df["activity_id"] = activity_id
+                # If one activity has more than 2500 trackpoints, we drop it
+                activities_to_skip = (
+                    df.groupby("activity_id")
+                    .filter(lambda x: len(x) > 2500)["activity_id"]
+                    .unique()
+                )
+                df = df[~df["activity_id"].isin(activities_to_skip)]
+                if df.empty:
+                    continue
                 # Calculate Haversine distance moved between (lat, lon) and previous (lat, lon)
                 df["prev_lon"] = df["lon"].shift(1)
                 df["prev_lat"] = df["lat"].shift(1)
-                df["meters_moved"] = haversine_np(df["lon"], df["lat"], df["prev_lon"], df["prev_lat"])
+                df["meters_moved"] = haversine_np(
+                    df["lon"], df["lat"], df["prev_lon"], df["prev_lat"]
+                )
                 # Convert altitude from feet to meters
                 df["altitude"] = df["altitude"] * 0.3048
                 # Add altitude_diff column representing the difference between current altitude and previous altitude
                 df["altitude_diff"] = df["altitude"].diff()
                 # Add time diff since last trackpoint
-                df["minutes_diff"] = df["date_days"].diff()*24*60
+                df["minutes_diff"] = df["date_days"].diff() * 24 * 60
                 # Calculate a radial distance in a Euclidian space with two dimensions
                 # (distance from center of world and date_days) used for querying for
                 # users that have been close to each other in time and space.
                 # First, we calculate the Haversine distance of each point to the
                 # center of the world.
-                df["physical_radial"] = haversine_np(df["lon"], df["lat"], np.zeros(df.shape[0]), np.zeros(df.shape[0]))
+                df["physical_radial"] = haversine_np(
+                    df["lon"], df["lat"], np.zeros(df.shape[0]), np.zeros(df.shape[0])
+                )
                 # Then, we want to also account for altitude differences by using Pythagoras
-                df["physical_radial"] = np.sqrt(df["physical_radial"]**2 + df["altitude"]**2)
+                df["physical_radial"] = np.sqrt(
+                    df["physical_radial"] ** 2 + df["altitude"] ** 2
+                )
                 # Then, we have to normalize both dimensions to match the scale of the other dimension.
                 # When we query for proximity, we look for users that have been less than 50 meters from
                 # each other within a time frame of 30 seconds, thus we want 30 seconds to equal 50 meters
@@ -176,10 +265,14 @@ class CreateDatabase:
                 df["seconds"] = df["date_days"] * 24 * 60 * 60
                 df["time_dimension"] = df["seconds"] / 30
                 df["physical_radial"] = df["physical_radial"] / 50
-                df["euclidian_radial"] = np.sqrt(df["physical_radial"]**2 + df["time_dimension"]**2)
+                df["euclidian_radial"] = np.sqrt(
+                    df["physical_radial"] ** 2 + df["time_dimension"] ** 2
+                )
                 # Create TrackPoint objects
                 trackpoints = []
-                for _, row in df.iterrows():
+                for i, row in df.iterrows():
+                    if np.isnan(row["activity_id"]):
+                        continue
                     altitude_diff = row["altitude_diff"]
                     if np.isnan(altitude_diff):
                         altitude_diff = None
@@ -189,55 +282,30 @@ class CreateDatabase:
                     minutes_diff = row["minutes_diff"]
                     if np.isnan(minutes_diff):
                         minutes_diff = None
-                    trackpoint = (activity_id, row["lat"], row["lon"], row["altitude"], altitude_diff, meters_moved, minutes_diff, row["date_days"], row["date"] + " " + row["time"], row["euclidian_radial"])
+                    trackpoint = (
+                        row["activity_id"],
+                        row["lat"],
+                        row["lon"],
+                        row["altitude"],
+                        altitude_diff,
+                        meters_moved,
+                        minutes_diff,
+                        row["date_days"],
+                        row["date"] + " " + row["time"],
+                        row["euclidian_radial"],
+                    )
                     trackpoints.append(trackpoint)
                 # Bulk insert TrackPoint objects into TrackPoint table
                 query = "INSERT INTO TrackPoint (activity_id, lat, lon, altitude, altitude_diff, meters_moved, minutes_diff, date_days, date_time, euclidian_radial) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
                 self.cursor.executemany(query, trackpoints)
                 self.db_connection.commit()
 
-    def set_transportation_modes(self):
-        # Get users from database that have labels
-        query = "SELECT id FROM User WHERE has_labels = 1"
+    def drop_empty_activities(self):
+        query = (
+            "DELETE FROM Activity WHERE id NOT IN (SELECT activity_id FROM TrackPoint)"
+        )
         self.cursor.execute(query)
-        rows = self.cursor.fetchall()
-        user_ids = [row[0] for row in rows]
-        print("Found %d users with labels" % len(user_ids))
-        print(user_ids)
-
-        transportation_mode_instances = defaultdict(int)
-
-        # Iterate over all users with labels
-        for user_id in user_ids:
-            print("Updating transportation modes for user", user_id)
-
-            # Get transportation modes from subdir_name/labels.txt
-            subdir_name = str(user_id).rjust(3, "0")
-            labels_path = os.path.join(DATASET_PATH, subdir_name, "labels.txt")
-            update_values = []
-            with open(labels_path, "r") as f:
-                lines = f.readlines()
-                for line in lines[1:]:
-                    start_time, end_time, transportation_mode = line.split("\t")
-                    start_time = datetime.strptime(start_time, "%Y/%m/%d %H:%M:%S").replace(tzinfo=timezone.utc)
-                    end_time = datetime.strptime(end_time, "%Y/%m/%d %H:%M:%S").replace(tzinfo=timezone.utc)
-                    start_time = start_time.strftime("%Y-%m-%d %H:%M:%S")
-                    end_time = end_time.strftime("%Y-%m-%d %H:%M:%S")
-                    transportation_mode = transportation_mode.strip()
-                    update_values.append((transportation_mode, user_id, start_time, end_time))
-                    transportation_mode_instances[transportation_mode] += 1
-
-            # Bulk update Activity table
-            print(update_values)
-            query = "UPDATE Activity SET transportation_mode = %s WHERE user_id = %s AND start_date_time = %s AND end_date_time = %s"
-            self.cursor.executemany(query, update_values)
-            self.db_connection.commit()
-        
-        print("Set transportation modes for all users")
-        print("Transportation mode instances:")
-        for key, value in transportation_mode_instances.items():
-            print(key, value)
-
+        self.db_connection.commit()
 
     def fetch_data(self, table_name):
         query = "SELECT * FROM %s"
@@ -274,11 +342,12 @@ def main():
     program.create_tables()
     program.set_indices()
     program.insert_user_data()
+    program.create_activities_for_users_using_labels()
     # _ = program.fetch_data(table_name="User")
     program.insert_activity_and_trackpoint_data()
-    program.set_transportation_modes()
+    program.drop_empty_activities()
     # program.show_tables()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
