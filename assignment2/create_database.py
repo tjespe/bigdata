@@ -346,7 +346,7 @@ class CreateDatabase:
 
 def main():
     program = CreateDatabase()
-    program.drop_all_tables()
+    # program.drop_all_tables()
     # program.drop_table(table_name="TrackingPoint")
     # program.drop_table(table_name="Activity")
     program.create_tables()
