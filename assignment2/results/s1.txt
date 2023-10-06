@@ -1,0 +1,10 @@
+Connected to: 8.1.0
+You are connected to the database: ('activity_tracker',)
+-----------------------------------------------
+
+Number of users: 182
+Number of activities: 15671
+Number of trackpoints: 8516722
+
+-----------------------------------------------
+Connection to 8.1.0 is closed
