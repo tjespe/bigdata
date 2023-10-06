@@ -213,7 +213,7 @@ class CreateDatabase:
                         ]["id"]
                         if activity_id.empty:
                             continue
-                        df["activity_id"][i] = activity_id.values[0]
+                        df.loc[i, "activity_id"] = activity_id.iloc[0]
                 else:
                     # Create Activity object
                     start_time = datetime.strptime(
