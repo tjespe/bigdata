@@ -16,7 +16,7 @@ def user_traveled_longest_in_one_day():
             SELECT Activity.user_id AS user_id, SUM(meters_moved) AS total_distance
             FROM TrackPoint INNER JOIN Activity ON Activity.id = TrackPoint.activity_id
             WHERE Activity.transportation_mode = '{transportation_mode}'
-            GROUP BY user_id, DATE(Activity.start_date_time)
+            GROUP BY user_id, DATE(TrackPoint.date_time)
             ORDER BY total_distance DESC
             LIMIT 1;
         """
