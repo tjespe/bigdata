@@ -190,30 +190,23 @@ class CreateDatabase:
                     inplace=True, value=float("nan")
                 )
                 df["activity_id"] = np.nan
+                # Create date_time column
+                df["date_time"] = df["date"] + " " + df["time"]
+                df["date_time"] = pd.to_datetime(df["date_time"])
                 if user_id in users_using_labels:
+                    # Find the appropriate activity IDs for every trackpoint
                     query = "SELECT id, start_date_time, end_date_time FROM Activity WHERE user_id = %s"
                     self.cursor.execute(query, (user_id,))
                     user_activities = pd.DataFrame(
                         self.cursor.fetchall(),
                         columns=["id", "start_date_time", "end_date_time"],
                     )
-                    user_activities["start_date_time"] = pd.to_datetime(
-                        user_activities["start_date_time"]
-                    )
-                    user_activities["end_date_time"] = pd.to_datetime(
-                        user_activities["end_date_time"]
-                    )
-                    # Find the appropriate activity IDs for every trackpoint
-                    for i in range(len(df)):
-                        date_time = df["date"][i] + " " + df["time"][i]
-                        date_time = datetime.strptime(date_time, "%Y-%m-%d %H:%M:%S")
-                        activity_id = user_activities[
-                            (user_activities["start_date_time"] <= date_time)
-                            & (user_activities["end_date_time"] >= date_time)
-                        ]["id"]
-                        if activity_id.empty:
-                            continue
-                        df.loc[i, "activity_id"] = activity_id.iloc[0]
+                    for _, row in user_activities.iterrows():
+                        df.loc[
+                            (df["date_time"] >= row["start_date_time"])
+                            & (df["date_time"] <= row["end_date_time"]),
+                            "activity_id",
+                        ] = row["id"]
                 else:
                     # Create Activity object
                     start_time = datetime.strptime(
@@ -301,7 +294,7 @@ class CreateDatabase:
                         meters_moved,
                         minutes_diff,
                         row["date_days"],
-                        row["date"] + " " + row["time"],
+                        row["date_time"],
                         row["euclidian_radial"],
                     )
                     trackpoints.append(trackpoint)
@@ -346,7 +339,7 @@ class CreateDatabase:
 
 def main():
     program = CreateDatabase()
-    # program.drop_all_tables()
+    program.drop_all_tables()
     # program.drop_table(table_name="TrackingPoint")
     # program.drop_table(table_name="Activity")
     program.create_tables()
