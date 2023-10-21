@@ -156,13 +156,6 @@ class DocumentInserter:
                         }
                     )
                     df["activity_idx"] = file_idx
-                # If one activity has more than 2500 trackpoints, we drop it
-                activities_to_skip = (
-                    df.groupby("activity_idx")
-                    .filter(lambda x: len(x) > 2500)["activity_idx"]
-                    .unique()
-                )
-                df = df[~df["activity_idx"].isin(activities_to_skip)]
                 if df.empty:
                     continue
                 if trackpoints_df is None:
@@ -181,6 +174,16 @@ class DocumentInserter:
                         "activity_idx",
                     ],
                 ).set_index("activity_idx")
+
+            # If one activity has more than 2500 trackpoints, we drop it
+            activities_to_skip = (
+                trackpoints_df.groupby("activity_idx")
+                .filter(lambda x: len(x) > 2500)["activity_idx"]
+                .unique()
+            )
+            trackpoints_df = trackpoints_df[
+                ~trackpoints_df["activity_idx"].isin(activities_to_skip)
+            ]
 
             # Create activity documents
             print("Creating activity documents")
@@ -213,7 +216,9 @@ class DocumentInserter:
             # Insert activities
             collection = self.db["activities"]
             print("Inserting", len(activities), "activities for user", user_id)
-            collection.insert_many(activities)
+            chunk_size = 100
+            for i in range(0, len(activities), chunk_size):
+                collection.insert_many(activities[i : i + chunk_size])
 
     def count_documents(self, collection_name):
         collection = self.db[collection_name]
@@ -227,16 +232,11 @@ class DocumentInserter:
         collection = self.db[collection_name]
         collection.drop()
 
-    def show_collection(self):
-        collections = self.client["test"].list_collection_names()
-        print(collections)
-
 
 def main():
     program = DocumentInserter()
     # program.drop_collection(collection_name="activities")
     program.create_collection(collection_name="activities")
-    program.show_collection()
     program.insert_activity_and_trackpoint_data()
     program.count_documents(collection_name="activities")
     program.fetch_sample(collection_name="activities")
