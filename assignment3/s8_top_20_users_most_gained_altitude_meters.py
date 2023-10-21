@@ -7,22 +7,37 @@ def top_20_users_most_gained_altitude_meters():
     client = connection.client
     db = connection.db
 
-
     query = db.activities.aggregate([
-        
         {
             "$group": {
                 "_id": "$userid",
-
             }
         },
+
         {"$unwind": "$trackpoints"},
+        {
+            "$group": {
+                "_id": "$user_id",
+                "total_alt": {"$sum": "$trackpoints.altitude_diff"}
+            }
+        },
+        {
+            "$sort": { 
+                "total_alt": -1
+            }
+        },
+        {
+            "$limit" : 20
+        
+        }
     ])
 
     if query:
-        print("Top 20 users with the most gained altitude meters: ")
+        print("Top 20 users with the most altitude meters: ")
         print(query)
     else:
         print("Something went wrong")
 
     client.close()
+
+top_20_users_most_gained_altitude_meters()
