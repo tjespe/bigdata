@@ -33,5 +33,8 @@ def top_20_users_with_most_activities():
     else:
         print("Something went wrong")
 
+    client.close()
+
+
 
 top_20_users_with_most_activities()
