@@ -12,30 +12,29 @@ def users_who_have_tracked_an_activity_in_the_forbidden_city():
     db = connection.db
 
     # Query
-    user_id = 112
+    coordinates_of_the_forbidden_city = {"lat": 39.916, "lon": 116.397}
 
     pipeline = [
-        {"$match": {
-            "transportation_mode": "walk",
-            "$start_date_time": {"$gte": "2008-01-01T00:00:00", "$lt": "2009-01-01T00:00:00"},
-            "transportation_mode": "walk"
-        }},
         {"$unwind": "$trackpoints"},
-        {"$group": {"_id": "$user_id", "total_distance_2008": {"$sum": "$trackpoints.distance"}
-                    }}
+        {"$match": {
+            "trackpoints.lat": coordinates_of_the_forbidden_city["lat"],
+            "trackpoints.lon": coordinates_of_the_forbidden_city["lon"]
+        }},
+        {"$group": {"_id": "$user_id"}}
     ]
 
     output = db["activities"].aggregate(pipeline)
 
-    result = list(output)
+    users = [user["_id"] for user in output]
+
 
     # Print result
-    if result:
-        total_distance_2008 = result[0]["total_distance_2008"]
-        print(
-            f"Total distance walked by user {user_id} in 2008: {total_distance_2008} km")
+    if users:
+        print("Users who have tracked an activity in the Forbidden City:")
+        columns = ["User ID"]
+        print_table(users, columns)
     else:
-        print(f"No data found")
+        print("No data found ")
 
     client.close()
 

@@ -24,7 +24,7 @@ def total_dist_walked_in_2008_by_user_112():
                     }}
     ]
 
-    output = db["activities"].aggregate(pipeline)
+    output = db["Activity"].aggregate(pipeline)
 
     result = list(output)
 
