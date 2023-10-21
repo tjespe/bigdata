@@ -17,7 +17,7 @@ def total_dist_walked_in_2008_by_user_112():
         {
             "$match": {
                 "transportation_mode": "walk",
-                "$start_date_time": {
+                "start_time": {
                     "$gte": "2008-01-01T00:00:00",
                     "$lt": "2009-01-01T00:00:00",
                 },
@@ -35,11 +35,11 @@ def total_dist_walked_in_2008_by_user_112():
 
     output = db["Activity"].aggregate(pipeline)
 
-    result = list(output)
+    result = output.try_next()
 
     # Print result
     if result:
-        total_distance_2008 = result[0]["total_distance_2008"]
+        total_distance_2008 = result["total_distance_2008"]
         print(
             f"Total distance walked by user {user_id} in 2008: {total_distance_2008} km"
         )

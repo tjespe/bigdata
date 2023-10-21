@@ -8,7 +8,7 @@ def year_with_most_activities():
 
     query = db.activities.aggregate(
         [
-            {"$group": {"_id": {"$year": "start_time"}, "count": {"$sum": 1}}},
+            {"$group": {"_id": {"$year": "$start_time"}, "count": {"$sum": 1}}},
             {"$sort": {"count": -1}},
             {"$limit": 1},
         ]
@@ -50,7 +50,7 @@ def year_with_most_activity_hours():
             },
             {
                 "$group": {
-                    "_id": {"$year": "start_time"},
+                    "_id": {"$year": "$start_time"},
                     "hours": {"$sum": "$duration"},
                 }
             },
