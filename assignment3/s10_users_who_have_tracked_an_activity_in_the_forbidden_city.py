@@ -25,9 +25,9 @@ def users_who_have_tracked_an_activity_in_the_forbidden_city():
         {"$group": {"_id": "$user_id"}},
     ]
 
-    output = db["activities"].aggregate(pipeline)
+    output = db.activities.aggregate(pipeline)
 
-    users = [user["_id"] for user in output]
+    users = [[user["_id"]] for user in output]
 
     # Print result
     if users:

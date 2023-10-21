@@ -14,14 +14,14 @@ def users_with_invalid_activites():
     # Query
     pipeline = [
         {"$unwind": "$trackpoints"},
-        {"match": {"$trackpoints.minutes_diff": {"$gte": 5}}},
+        {"$match": {"trackpoints.minutes_diff": {"$gte": 5}}},
         {"$group": {"_id": "$user_id", "num_invalid_activities": {"$sum": 1}}},
         {"$sort": {"num_invalid_activities": -1}},
     ]
 
     output = db["activities"].aggregate(pipeline)
 
-    users = [user["_id"] for user in output]
+    users = [[user["_id"]] for user in output]
 
     # Print result
     if users:

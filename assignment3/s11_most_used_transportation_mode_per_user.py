@@ -10,13 +10,13 @@ def most_used_transportation_mode_per_user():
     db = connection.db
 
     # creating query
-    query = db.activities.aggregate(
+    cursor = db.activities.aggregate(
         [
             {"$match": {"transportation_mode": {"$ne": None}}},
             {
                 "$group": {
                     "_id": {
-                        "userid": "$user_id",
+                        "user_id": "$user_id",
                         "transportation_mode": "$transportation_mode",
                     },
                     "count": {"$sum": 1},
@@ -25,11 +25,15 @@ def most_used_transportation_mode_per_user():
             {"$sort": {"count": -1}},
             {
                 "$group": {
-                    "_id": "$id.userid",
+                    "_id": "$id.user_id",
                     "transportation_mode": {"$first": "$_id.transportation_mode"},
                 }
             },
         ]
     )
 
-    print(query.next())
+    for doc in cursor:
+        print(doc)
+
+
+most_used_transportation_mode_per_user()
