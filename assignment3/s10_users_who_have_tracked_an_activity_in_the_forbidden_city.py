@@ -1,10 +1,11 @@
 from DbConnector import DbConnector
 from helpers import print_table
 
-# Find the total distance (in km) walked in 2008, by user with id=112
+# Find the users who have tracked an activity in the Forbidden City of Beijing.
+# In this question you can consider the Forbidden City to have coordinates that correspond to: lat 39.916, lon 116.397
 
 
-def total_dist_walked_in_2008_by_user_112():
+def users_who_have_tracked_an_activity_in_the_forbidden_city():
     # Connect to db
     connection = DbConnector()
     client = connection.client
@@ -40,4 +41,4 @@ def total_dist_walked_in_2008_by_user_112():
 
 
 if __name__ == "__main__":
-    total_dist_walked_in_2008_by_user_112()
+    users_who_have_tracked_an_activity_in_the_forbidden_city()

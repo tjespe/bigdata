@@ -16,7 +16,7 @@ def users_that_have_taken_taxi():
         {"$group": {"_id": "$user_id"}}
     ]
 
-    output = db["Activity"].aggregate(pipeline)
+    output = db["activities"].aggregate(pipeline)
     users = [user["_id"] for user in output]
 
     if users:
