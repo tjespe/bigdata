@@ -12,11 +12,13 @@ class DbConnector:
     PASSWORD = "test123" // The password you set for said user
     """
 
-    def __init__(self,
-                 DATABASE='DATABASE_NAME',
-                 HOST="tdt4225-xx.idi.ntnu.no",
-                 USER="TEST_USER",
-                 PASSWORD="test123"):
+    def __init__(
+        self,
+        DATABASE="activity_tracker",
+        HOST="localhost",  # "tdt4225-xx.idi.ntnu.no",
+        USER="group6",
+        PASSWORD="test123",
+    ):
         uri = "mongodb://%s:%s@%s/%s" % (USER, PASSWORD, HOST, DATABASE)
         # Connect to the databases
         try:
