@@ -12,12 +12,12 @@ def tall_types_of_transportation_modes_and_activity_count_per_mode():
 
     query = db.activities.aggregate(
         [
+            {"$match": {"transportation_mode": {"$ne": None}}},
             {"$group": {"_id": "$transportation_mode", "count": {"$sum": 1}}},
-            {"$sort": {"count": -1}},
+            {"$sort": {{"count": -1}}},
         ]
     )
 
-    ## check to remove the empty acivity mode
     if query:
         print("Number of activities per transportation mode: ")
         while doc := query.try_next():
