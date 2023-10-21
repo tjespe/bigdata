@@ -1,4 +1,4 @@
-from DbConnector import DbConnector
+from MongoDbConnector import DbConnector
 from helpers import print_table
 
 # Find all users with invalid activities, and the number of invalid activities per user

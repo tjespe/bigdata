@@ -1,9 +1,10 @@
 from pymongo import MongoClient, version
+from pymongo.database import Database
 
 
 class DbConnector:
     """
-    Connects to the MongoDB server on the Ubuntu virtual machine. 
+    Connects to the MongoDB server on the Ubuntu virtual machine.
     Connector needs HOST, USER and PASSWORD to connect.
 
     Example:
@@ -11,6 +12,8 @@ class DbConnector:
     USER = "testuser" // This is the user you created and added privileges for
     PASSWORD = "test123" // The password you set for said user
     """
+
+    db: Database
 
     def __init__(
         self,

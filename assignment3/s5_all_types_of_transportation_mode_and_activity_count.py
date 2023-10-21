@@ -2,7 +2,7 @@
 # tagged with these transportation mode labels. Do not count the rows where
 # the mode is null.
 
-from DbConnector import DbConnector
+from MongoDbConnector import DbConnector
 
 
 def tall_types_of_transportation_modes_and_activity_count_per_mode():
@@ -10,31 +10,22 @@ def tall_types_of_transportation_modes_and_activity_count_per_mode():
     client = connection.client
     db = connection.db
 
-
-    query = db.activities.aggregate([
-        {
-            "$group": {
-               "_id": "$transportation_mode",
-                "count": {"$sum":1}
-            }
-        },
-        {
-            "$sort": { 
-                {"count": -1}
-            }
-        },
-
-    ])
+    query = db.activities.aggregate(
+        [
+            {"$group": {"_id": "$transportation_mode", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+        ]
+    )
 
     ## check to remove the empty acivity mode
     if query:
         print("Number of activities per transportation mode: ")
-        print(query)
+        while doc := query.try_next():
+            print(doc)
     else:
         print("Something went wrong")
 
     client.close()
-
 
 
 tall_types_of_transportation_modes_and_activity_count_per_mode()

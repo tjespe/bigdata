@@ -1,4 +1,4 @@
-from DbConnector import DbConnector
+from MongoDbConnector import DbConnector
 
 # How many users, activities and trackpoints are there in the dataset?
 
