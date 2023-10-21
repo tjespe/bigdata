@@ -10,6 +10,13 @@ def top_20_users_most_gained_altitude_meters():
 
     query = db.activities.aggregate([
         
+        {
+            "$group": {
+                "_id": "$userid",
+
+            }
+        },
+        {"$unwind": "$trackpoints"},
     ])
 
     if query:
