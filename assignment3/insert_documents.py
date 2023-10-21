@@ -7,6 +7,7 @@ import numpy as np
 
 import pandas as pd
 from MongoDbConnector import DbConnector
+from helpers import haversine_np
 
 
 # Change this if dataset is located somewhere else
@@ -188,6 +189,20 @@ class DocumentInserter:
             trackpoints_df = trackpoints_df[
                 ~trackpoints_df["activity_idx"].isin(activities_to_skip)
             ]
+            # Calculate Haversine distance moved between (lat, lon) and previous (lat, lon)
+            trackpoints_df.sort_values(by=["activity_idx", "date_time"], inplace=True)
+            trackpoints_df["prev_lon"] = trackpoints_df.groupby("activity_idx")[
+                "lon"
+            ].shift(1)
+            trackpoints_df["prev_lat"] = trackpoints_df.groupby("activity_idx")[
+                "lat"
+            ].shift(1)
+            trackpoints_df["meters_moved"] = haversine_np(
+                trackpoints_df["lon"],
+                trackpoints_df["lat"],
+                trackpoints_df["prev_lon"],
+                trackpoints_df["prev_lat"],
+            )
 
             # Create activity documents
             print("Creating activity documents")
@@ -212,6 +227,7 @@ class DocumentInserter:
                                 "date_time",
                                 "altitude_diff",
                                 "minutes_diff",
+                                "meters_moved",
                             ],
                         ].to_dict("records"),
                     }

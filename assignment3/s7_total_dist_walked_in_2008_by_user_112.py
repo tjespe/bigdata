@@ -1,3 +1,4 @@
+import datetime
 from MongoDbConnector import DbConnector
 from helpers import print_table
 
@@ -18,17 +19,17 @@ def total_dist_walked_in_2008_by_user_112():
             "$match": {
                 "transportation_mode": "walk",
                 "start_time": {
-                    "$gte": "2008-01-01T00:00:00",
-                    "$lt": "2009-01-01T00:00:00",
+                    "$gte": datetime.datetime(2008, 1, 1),
+                    "$lt": datetime.datetime(2008, 1, 1),
                 },
-                "transportation_mode": "walk",
+                "user_id": user_id,
             }
         },
         {"$unwind": "$trackpoints"},
         {
             "$group": {
-                "_id": "$user_id",
-                "total_distance_2008": {"$sum": "$trackpoints.distance"},
+                "_id": None,
+                "total_distance_2008": {"$sum": "$trackpoints.meters_moved"},
             }
         },
     ]
