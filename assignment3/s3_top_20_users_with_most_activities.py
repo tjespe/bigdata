@@ -1,9 +1,9 @@
-# Find the average number of activities per user.
+# Find the top 20 users with the highest number of activities. 
 
 from DbConnector import DbConnector
 
 
-def avg_number_of_activities_per_user():
+def top_20_users_with_most_activities():
     connection = DbConnector()
     client = connection.client
     db = connection.db
@@ -17,19 +17,21 @@ def avg_number_of_activities_per_user():
             }
         },
         {
-            "$group": {
-                "_id": None,
-                "avgNumActivities": {"$avg":"$count"}
+            "$sort": { 
+                {"count": -1}
             }
+        },
+        {
+            "$limit" : 20
         }
+
     ])
 
-    result = query[0]["avgNumActivities"]
-    if result:
-        print("Here is the average number of activities: ")
-        print(result)
+    if query:
+        print("Top 20 users with the most activities: ")
+        print(query)
     else:
         print("Something went wrong")
 
 
-avg_number_of_activities_per_user()
+top_20_users_with_most_activities()
