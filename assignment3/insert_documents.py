@@ -124,11 +124,13 @@ class DocumentInserter:
 
                     def find_activity_idx(date_time):
                         # Find the rightmost value less than or equal to date_time
-                        idx = bisect.bisect_left(start_times, date_time)
+                        idx = bisect.bisect_left(start_times, date_time) - 1
 
                         # Adjust idx if the found interval doesn't match
                         if (
-                            idx == len(activities_df)
+                            idx == -1
+                            or idx == len(activities_df)
+                            or date_time < activities_df.at[idx, "start_time"]
                             or activities_df.at[idx, "end_time"] < date_time
                         ):
                             return None
