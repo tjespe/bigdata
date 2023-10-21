@@ -3,7 +3,7 @@ from pymongo import MongoClient, version
 
 class DbConnector:
     """
-    Connects to the MongoDB server on the Ubuntu virtual machine.
+    Connects to the MongoDB server on the Ubuntu virtual machine. 
     Connector needs HOST, USER and PASSWORD to connect.
 
     Example:
