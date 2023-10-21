@@ -175,6 +175,10 @@ class DocumentInserter:
                     ],
                 ).set_index("activity_idx")
 
+            if trackpoints_df is None:
+                print("No trackpoints found for user", user_id)
+                continue
+
             # If one activity has more than 2500 trackpoints, we drop it
             activities_to_skip = (
                 trackpoints_df.groupby("activity_idx")
@@ -188,8 +192,8 @@ class DocumentInserter:
             # Create activity documents
             print("Creating activity documents")
             activities = []
-            if trackpoints_df is None or trackpoints_df.empty:
-                print("No trackpoints found for user", user_id)
+            if trackpoints_df.empty:
+                print("No trackpoints found for user", user_id, "after filtering")
                 continue
             for activity_idx, activity in activities_df.iterrows():
                 activities.append(
@@ -240,7 +244,6 @@ def main():
     program.insert_activity_and_trackpoint_data()
     program.count_documents(collection_name="activities")
     program.fetch_sample(collection_name="activities")
-    program.show_collection()
 
 
 if __name__ == "__main__":
