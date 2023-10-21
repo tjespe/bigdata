@@ -211,14 +211,18 @@ class DocumentInserter:
                 print("No trackpoints found for user", user_id, "after filtering")
                 continue
             for activity_idx, activity in activities_df.iterrows():
+                activity_trackpoints = trackpoints_df.loc[
+                    trackpoints_df["activity_idx"] == activity_idx
+                ]
+                if activity_trackpoints.empty:
+                    continue
                 activities.append(
                     {
                         "user_id": user_id,
                         "transportation_mode": activity["transportation_mode"],
                         "start_time": activity["start_time"],
                         "end_time": activity["end_time"],
-                        "trackpoints": trackpoints_df.loc[
-                            trackpoints_df["activity_idx"] == activity_idx,
+                        "trackpoints": activity_trackpoints[
                             [
                                 "lat",
                                 "lon",
@@ -228,7 +232,7 @@ class DocumentInserter:
                                 "altitude_diff",
                                 "minutes_diff",
                                 "meters_moved",
-                            ],
+                            ]
                         ].to_dict("records"),
                     }
                 )
