@@ -5,7 +5,7 @@
 from MongoDbConnector import DbConnector
 
 
-def tall_types_of_transportation_modes_and_activity_count_per_mode():
+def all_types_of_transportation_modes_and_activity_count_per_mode():
     connection = DbConnector()
     client = connection.client
     db = connection.db
@@ -28,4 +28,4 @@ def tall_types_of_transportation_modes_and_activity_count_per_mode():
     client.close()
 
 
-tall_types_of_transportation_modes_and_activity_count_per_mode()
+all_types_of_transportation_modes_and_activity_count_per_mode()
