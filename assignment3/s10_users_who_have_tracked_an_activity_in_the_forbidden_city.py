@@ -1,4 +1,4 @@
-from DbConnector import DbConnector
+from MongoDbConnector import DbConnector
 from helpers import print_table
 
 # Find the users who have tracked an activity in the Forbidden City of Beijing.
@@ -16,17 +16,18 @@ def users_who_have_tracked_an_activity_in_the_forbidden_city():
 
     pipeline = [
         {"$unwind": "$trackpoints"},
-        {"$match": {
-            "trackpoints.lat": coordinates_of_the_forbidden_city["lat"],
-            "trackpoints.lon": coordinates_of_the_forbidden_city["lon"]
-        }},
-        {"$group": {"_id": "$user_id"}}
+        {
+            "$match": {
+                "trackpoints.lat": coordinates_of_the_forbidden_city["lat"],
+                "trackpoints.lon": coordinates_of_the_forbidden_city["lon"],
+            }
+        },
+        {"$group": {"_id": "$user_id"}},
     ]
 
     output = db["activities"].aggregate(pipeline)
 
     users = [user["_id"] for user in output]
-
 
     # Print result
     if users:

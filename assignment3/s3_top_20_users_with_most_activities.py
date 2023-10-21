@@ -1,6 +1,6 @@
-# Find the top 20 users with the highest number of activities. 
+# Find the top 20 users with the highest number of activities.
 
-from DbConnector import DbConnector
+from MongoDbConnector import DbConnector
 
 
 def top_20_users_with_most_activities():
@@ -8,33 +8,21 @@ def top_20_users_with_most_activities():
     client = connection.client
     db = connection.db
 
-
-    query = db.activities.aggregate([
-        {
-            "$group": {
-               "_id": "$userid",
-                "count": {"$sum":1}
-            }
-        },
-        {
-            "$sort": { 
-                {"count": -1}
-            }
-        },
-        {
-            "$limit" : 20
-        }
-
-    ])
+    query = db.activities.aggregate(
+        [
+            {"$group": {"_id": "$user_id", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 20},
+        ]
+    )
 
     if query:
         print("Top 20 users with the most activities: ")
-        print(query)
+        print(query.next())
     else:
         print("Something went wrong")
 
     client.close()
-
 
 
 top_20_users_with_most_activities()

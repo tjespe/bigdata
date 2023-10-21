@@ -6,7 +6,7 @@ from pprint import pprint
 import numpy as np
 
 import pandas as pd
-from DbConnector import DbConnector
+from MongoDbConnector import DbConnector
 
 
 # Change this if dataset is located somewhere else
@@ -239,11 +239,11 @@ class DocumentInserter:
 
 def main():
     program = DocumentInserter()
-    # program.drop_collection(collection_name="activities")
+    program.drop_collection(collection_name="activities")
     program.create_collection(collection_name="activities")
     program.insert_activity_and_trackpoint_data()
     program.count_documents(collection_name="activities")
-    program.fetch_sample(collection_name="activities")
+    # program.fetch_sample(collection_name="activities")
 
 
 if __name__ == "__main__":

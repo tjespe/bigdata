@@ -1,4 +1,4 @@
-from DbConnector import DbConnector
+from MongoDbConnector import DbConnector
 from helpers import print_table
 
 # Find all users who have taken a taxi.
@@ -13,11 +13,11 @@ def users_that_have_taken_taxi():
     # Query
     pipeline = [
         {"$match": {"transportation_mode": "taxi"}},
-        {"$group": {"_id": "$user_id"}}
+        {"$group": {"_id": "$user_id"}},
     ]
 
     output = db["activities"].aggregate(pipeline)
-    users = [user["_id"] for user in output]
+    users = [[user["_id"]] for user in output]
 
     if users:
         columns = ["User ID"]
