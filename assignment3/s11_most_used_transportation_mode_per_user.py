@@ -25,7 +25,7 @@ def most_used_transportation_mode_per_user():
             {"$sort": {"count": -1}},
             {
                 "$group": {
-                    "_id": "$id.user_id",
+                    "_id": "$_id.user_id",
                     "transportation_mode": {"$first": "$_id.transportation_mode"},
                 }
             },

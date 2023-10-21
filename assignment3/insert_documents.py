@@ -236,9 +236,7 @@ class DocumentInserter:
             # Insert activities
             collection = self.db["activities"]
             print("Inserting", len(activities), "activities for user", user_id)
-            chunk_size = 100
-            for i in range(0, len(activities), chunk_size):
-                collection.insert_many(activities[i : i + chunk_size])
+            collection.insert_many(activities)
 
     def count_documents(self, collection_name):
         collection = self.db[collection_name]
@@ -255,7 +253,7 @@ class DocumentInserter:
 
 def main():
     program = DocumentInserter()
-    program.drop_collection(collection_name="activities")
+    # program.drop_collection(collection_name="activities")
     program.create_collection(collection_name="activities")
     program.insert_activity_and_trackpoint_data()
     program.count_documents(collection_name="activities")

@@ -18,8 +18,14 @@ def users_who_have_tracked_an_activity_in_the_forbidden_city():
         {"$unwind": "$trackpoints"},
         {
             "$match": {
-                "trackpoints.lat": coordinates_of_the_forbidden_city["lat"],
-                "trackpoints.lon": coordinates_of_the_forbidden_city["lon"],
+                "trackpoints.lat": {
+                    "$gte": coordinates_of_the_forbidden_city["lat"],
+                    "$lte": coordinates_of_the_forbidden_city["lat"] + 0.001,
+                },
+                "trackpoints.lon": {
+                    "$gte": coordinates_of_the_forbidden_city["lon"],
+                    "$lte": coordinates_of_the_forbidden_city["lon"] + 0.001,
+                },
             }
         },
         {"$group": {"_id": "$user_id"}},
