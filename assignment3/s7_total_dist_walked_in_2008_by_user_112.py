@@ -20,7 +20,7 @@ def total_dist_walked_in_2008_by_user_112():
                 "transportation_mode": "walk",
                 "start_time": {
                     "$gte": datetime.datetime(2008, 1, 1),
-                    "$lt": datetime.datetime(2008, 1, 1),
+                    "$lt": datetime.datetime(2009, 1, 1),
                 },
                 "user_id": user_id,
             }
