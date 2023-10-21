@@ -26,10 +26,12 @@ def avg_number_of_activities_per_user():
 
     result = query[0]["avgNumActivities"]
     if result:
-        print("Here is the average number of activities: ")
+        print("The average number of activities: ")
         print(result)
     else:
         print("Something went wrong")
+
+    client.close()
 
 
 avg_number_of_activities_per_user()

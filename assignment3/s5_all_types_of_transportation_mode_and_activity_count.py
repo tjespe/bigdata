@@ -28,10 +28,13 @@ def tall_types_of_transportation_modes_and_activity_count_per_mode():
 
     ## check to remove the empty acivity mode
     if query:
-        print("Top 20 users with the most activities: ")
+        print("Number of activities per transportation mode: ")
         print(query)
     else:
         print("Something went wrong")
+
+    client.close()
+
 
 
 tall_types_of_transportation_modes_and_activity_count_per_mode()
