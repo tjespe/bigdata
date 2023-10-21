@@ -1,0 +1,9 @@
+use admin;
+db.createUser({ user: "group6", pwd: "test123", roles: ["root"] });
+use activity_tracker;
+db.createUser({
+    user: "group6",
+    pwd: "test123",
+    roles: ["readWrite"]
+});
+show users;
