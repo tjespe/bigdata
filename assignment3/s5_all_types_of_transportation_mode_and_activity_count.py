@@ -3,6 +3,7 @@
 # the mode is null.
 
 from MongoDbConnector import DbConnector
+from helpers import print_table
 
 
 def all_types_of_transportation_modes_and_activity_count_per_mode():
@@ -20,8 +21,11 @@ def all_types_of_transportation_modes_and_activity_count_per_mode():
 
     if query:
         print("Number of activities per transportation mode: ")
+        rows = []
         while doc := query.try_next():
-            print(doc)
+            rows.append([doc["_id"], doc["count"]])
+        columns = ["Transportation mode", "Count"]
+        print_table(rows, columns)
     else:
         print("Something went wrong")
 
