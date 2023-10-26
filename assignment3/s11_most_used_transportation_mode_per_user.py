@@ -2,6 +2,7 @@
 # transportation_mode
 
 from MongoDbConnector import DbConnector
+from helpers import print_table
 
 
 def most_used_transportation_mode_per_user():
@@ -32,8 +33,11 @@ def most_used_transportation_mode_per_user():
         ]
     )
 
+    rows = []
     for doc in cursor:
-        print(doc)
+        rows.append([doc["_id"], doc["transportation_mode"]])
+    headers = ["User ID", "Most used transportation mode"]
+    print_table(sorted(rows, key=lambda t: t[0]), headers)
 
 
 most_used_transportation_mode_per_user()
