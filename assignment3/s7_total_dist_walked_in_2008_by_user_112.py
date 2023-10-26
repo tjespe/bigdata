@@ -26,6 +26,7 @@ def total_dist_walked_in_2008_by_user_112():
             }
         },
         {"$unwind": "$trackpoints"},
+        {"$match": {"trackpoints.meters_moved": {"$gt": 0}}},
         {
             "$group": {
                 "_id": None,
@@ -34,7 +35,7 @@ def total_dist_walked_in_2008_by_user_112():
         },
     ]
 
-    output = db["Activity"].aggregate(pipeline)
+    output = db.activities.aggregate(pipeline)
 
     result = output.try_next()
 
@@ -42,7 +43,7 @@ def total_dist_walked_in_2008_by_user_112():
     if result:
         total_distance_2008 = result["total_distance_2008"]
         print(
-            f"Total distance walked by user {user_id} in 2008: {total_distance_2008} km"
+            f"Total distance walked by user {user_id} in 2008: {total_distance_2008/1000} km"
         )
     else:
         print(f"No data found")
