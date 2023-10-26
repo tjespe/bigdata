@@ -24,6 +24,31 @@ class DocumentInserter:
         collection = self.db.create_collection(collection_name, check_exists=False)
         print("Created collection: ", collection)
 
+    def insert_user_data(self):
+        subdir_names = os.listdir(DATASET_PATH)
+        user_ids = [int(subdir_name) for subdir_name in subdir_names]
+
+        # Get users that have labels from the labels file
+        labels_path = os.path.join(
+            os.path.dirname(__file__), "..", "dataset", "labeled_ids.txt"
+        )
+        with open(labels_path, "r") as f:
+            lines = f.readlines()
+            labels = [line.split(" ")[0] for line in lines]
+            user_ids_with_labels = set([int(label) for label in labels])
+            print("Found %d users with labels" % len(user_ids_with_labels))
+            print(user_ids_with_labels)
+
+        users = []
+        for user_id in user_ids:
+            users.append(
+                {"_id": user_id, "has_labels": user_id in user_ids_with_labels}
+            )
+
+        collection = self.db["users"]
+        print("Inserting", len(users), "users")
+        collection.insert_many(users)
+
     def insert_activity_and_trackpoint_data(self):
         """
         Add data to Activity and TrackPoint tables based on the files in the dataset (../dataset/Data)
@@ -260,9 +285,12 @@ class DocumentInserter:
 def main():
     program = DocumentInserter()
     # program.drop_collection(collection_name="activities")
-    program.create_collection(collection_name="activities")
-    program.insert_activity_and_trackpoint_data()
+    # program.create_collection(collection_name="activities")
+    program.create_collection(collection_name="users")
+    # program.insert_activity_and_trackpoint_data()
+    program.insert_user_data()
     program.count_documents(collection_name="activities")
+    program.count_documents(collection_name="users")
     # program.fetch_sample(collection_name="activities")
 
 
