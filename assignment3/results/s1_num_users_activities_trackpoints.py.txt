@@ -1,0 +1,3 @@
+Number of users: 182
+Number of activities: 15641
+Number of trackpoints: 8471126

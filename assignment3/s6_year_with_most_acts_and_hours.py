@@ -54,7 +54,7 @@ def year_with_most_activity_hours():
                     "hours": {"$sum": "$duration"},
                 }
             },
-            {"$sort": {"totalHours": -1}},
+            {"$sort": {"hours": -1}},
             {"$limit": 1},
         ]
     )
