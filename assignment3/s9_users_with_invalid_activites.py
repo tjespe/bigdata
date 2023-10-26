@@ -20,13 +20,12 @@ def users_with_invalid_activites():
     ]
 
     output = db["activities"].aggregate(pipeline)
-
-    users = [[user["_id"]] for user in output]
+    data = [[user["_id"], user["num_invalid_activities"]] for user in output]
 
     # Print result
-    if users:
+    if data:
         columns = ["User ID", "Number of Invalid Activites"]
-        print_table(users, columns)
+        print_table(data, columns)
     else:
         print("No data found")
 
