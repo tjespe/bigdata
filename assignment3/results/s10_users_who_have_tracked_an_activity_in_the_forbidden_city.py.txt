@@ -1,0 +1,8 @@
+Users who have tracked an activity in the Forbidden City:
+╒═══════════╕
+│   User ID │
+╞═══════════╡
+│        19 │
+├───────────┤
+│        18 │
+╘═══════════╛
