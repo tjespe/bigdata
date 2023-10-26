@@ -7,20 +7,10 @@ def avg_number_of_activities_per_user():
     connection = DbConnector()
     client = connection.client
     db = connection.db
+    user_count = db["users"].count_documents({})
+    activity_count = db["activities"].count_documents({})
 
-    query = db.activities.aggregate(
-        [
-            {"$group": {"_id": "$user_id", "count": {"$sum": 1}}},
-            {"$group": {"_id": None, "avgNumActivities": {"$avg": "$count"}}},
-        ]
-    )
-
-    result = query.next()["avgNumActivities"]
-    if result:
-        print("The average number of activities: ")
-        print(result)
-    else:
-        print("Something went wrong")
+    print("The average number of activities per user: ", activity_count / user_count)
 
     client.close()
 

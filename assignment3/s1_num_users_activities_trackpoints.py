@@ -11,7 +11,7 @@ def num_users_activites_trackpoints():
 
     # Query
     activity_count = db["activities"].count_documents({})
-    user_count = len(db["activities"].distinct("user_id"))
+    user_count = len(db["users"].distinct("_id"))
 
     pipeline = [
         {"$project": {"trackpoint_count": {"$size": "$trackpoints"}}},
