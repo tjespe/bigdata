@@ -1,6 +1,7 @@
 # Find the top 20 users who have gained the most altitude meters
 
 from MongoDbConnector import DbConnector
+from helpers import print_table
 
 
 def top_20_users_most_gained_altitude_meters():
@@ -25,8 +26,11 @@ def top_20_users_most_gained_altitude_meters():
 
     if query:
         print("Top 20 users with the most altitude meters: ")
-        for doc in query:
-            print(doc)
+        rows = []
+        for i, doc in enumerate(query):
+            rows.append([i + 1, doc["_id"], doc["total_alt"]])
+        columns = ["Rank", "User id", "Total altitude meters"]
+        print_table(rows, columns)
     else:
         print("Something went wrong")
 
