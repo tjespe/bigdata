@@ -1,1 +1,2 @@
 The average number of activities per user:  85.93956043956044
+
