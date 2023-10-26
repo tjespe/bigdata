@@ -1,6 +1,7 @@
 # Find the top 20 users with the highest number of activities.
 
 from MongoDbConnector import DbConnector
+from helpers import print_table
 
 
 def top_20_users_with_most_activities():
@@ -16,9 +17,12 @@ def top_20_users_with_most_activities():
         ]
     )
 
+    data = [[user["_id"], user["count"]] for user in query]
+
     if query:
         print("Top 20 users with the most activities: ")
-        print(query.next())
+        columns = ["User ID", "Number of activities"]
+        print_table(data, columns)
     else:
         print("Something went wrong")
 
